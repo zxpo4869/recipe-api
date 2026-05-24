@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken");
 const { ObjectId } = require("mongodb");
 
 const mongoUri = process.env.MONGO_URI;
-const dbname = "my_database";
+const dbname = "cook_book";
 
 let app = express();
 
@@ -24,6 +24,24 @@ async function main() {
     res.json({
       message: "API is working",
     });
+  });
+
+  // GET all recipes
+  app.get("/recipes", async function (req, res) {
+    const recipes = await db.collection("recipes").find().toArray();
+
+    res.json(recipes);
+  });
+
+  // GET recipe by id
+  app.get("/recipes/:id", async function (req, res) {
+    const id = req.params.id;
+
+    const recipes = await db.collection("recipes").findOne({
+      _id: new ObjectId(id),
+    });
+
+    res.json(recipes);
   });
 }
 
