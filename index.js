@@ -17,6 +17,19 @@ let app = express();
 app.use(express.json());
 app.use(cors());
 
+const generateAccessToken = function (id, email) {
+  return jwt.sign(
+    {
+      user_id: id,
+      email: email,
+    },
+    process.env.TOKEN_SECRET,
+    {
+      expiresIn: "1h",
+    },
+  );
+};
+
 async function main() {
   const db = await connect(mongoUri, dbname);
 
@@ -168,6 +181,39 @@ async function main() {
     res.json({
       message: "User registered",
       insertedId: result.insertedId,
+    });
+  });
+
+  // LOGIN user
+  app.post("/users/login", async function (req, res) {
+    const email = req.body.email;
+    const password = req.body.password;
+
+    // find user
+    const user = await db.collection("users").findOne({
+      email: email,
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "User doesn't exist",
+      });
+    }
+
+    // compare password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Invalid/wrong password",
+      });
+    }
+
+    // generate token
+    const accessToken = generateAccessToken(user._id, user.email);
+
+    res.json({
+      accessToken: accessToken,
     });
   });
 }
