@@ -74,8 +74,11 @@ async function main() {
   });
 
   // CREATE recipe
-  app.post("/recipes", async function (req, res) {
+  app.post("/recipes", verifyToken, async function (req, res) {
     const recipeData = req.body;
+
+    // add a created by field in mongo db
+    recipeData.createdBy = req.user.user_id;
 
     const result = await db.collection("recipes").insertOne(recipeData);
 
@@ -86,10 +89,22 @@ async function main() {
   });
 
   // PATCH recipe
-  app.patch("/recipes/:id", async function (req, res) {
+  app.patch("/recipes/:id", verifyToken, async function (req, res) {
     const id = req.params.id;
 
     const updatedData = req.body;
+
+    // find recipe first
+    const recipe = await db.collection("recipes").findOne({
+      _id: new ObjectId(id),
+    });
+
+    // ownership check
+    if (recipe.createdBy != req.user.user_id) {
+      return res.status(403).json({
+        message: "You are not the owner",
+      });
+    }
 
     const result = await db.collection("recipes").updateOne(
       {
@@ -107,10 +122,24 @@ async function main() {
   });
 
   // PUT recipe
-  app.put("/recipes/:id", async function (req, res) {
+  app.put("/recipes/:id", verifyToken, async function (req, res) {
     const id = req.params.id;
 
     const replacementDocument = req.body;
+
+    // find recipe first
+    const recipe = await db.collection("recipes").findOne({
+      _id: new ObjectId(id),
+    });
+
+    // ownership check
+    if (recipe.createdBy != req.user.user_id) {
+      return res.status(403).json({
+        message: "You are not the owner",
+      });
+    }
+
+    replacementDocument.createdBy = recipe.createdBy;
 
     const result = await db.collection("recipes").replaceOne(
       {
@@ -126,8 +155,20 @@ async function main() {
   });
 
   // DELETE recipe
-  app.delete("/recipes/:id", async function (req, res) {
+  app.delete("/recipes/:id", verifyToken, async function (req, res) {
     const id = req.params.id;
+
+    // find recipe first
+    const recipe = await db.collection("recipes").findOne({
+      _id: new ObjectId(id),
+    });
+
+    // ownership check
+    if (recipe.createdBy != req.user.user_id) {
+      return res.status(403).json({
+        message: "You are not the owner",
+      });
+    }
 
     const result = await db.collection("recipes").deleteOne({
       _id: new ObjectId(id),
