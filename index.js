@@ -30,6 +30,22 @@ const generateAccessToken = function (id, email) {
   );
 };
 
+const verifyToken = function (req, res, next) {
+  const authHeader = req.headers["authorization"];
+
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) return res.sendStatus(403);
+
+  jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+
+    req.user = user;
+
+    next();
+  });
+};
+
 async function main() {
   const db = await connect(mongoUri, dbname);
 
@@ -214,6 +230,14 @@ async function main() {
 
     res.json({
       accessToken: accessToken,
+    });
+  });
+
+  // PROTECTED profile route
+  app.get("/profile", verifyToken, function (req, res) {
+    res.json({
+      message: "Protected profile route",
+      user: req.user,
     });
   });
 }
