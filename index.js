@@ -44,6 +44,7 @@ async function main() {
     res.json(recipes);
   });
 
+  // CREATE recipe
   app.post("/recipes", async function (req, res) {
     const recipeData = req.body;
 
@@ -52,6 +53,58 @@ async function main() {
     res.json({
       message: "New recipe created",
       insertedId: result.insertedId,
+    });
+  });
+
+  // PATCH recipe
+  app.patch("/recipes/:id", async function (req, res) {
+    const id = req.params.id;
+
+    const updatedData = req.body;
+
+    const result = await db.collection("recipes").updateOne(
+      {
+        _id: new ObjectId(id),
+      },
+      {
+        $set: updatedData,
+      },
+    );
+
+    res.json({
+      message: "Recipe updated",
+      result: result,
+    });
+  });
+
+  app.put("/recipes/:id", async function (req, res) {
+    const id = req.params.id;
+
+    const replacementDocument = req.body;
+
+    const result = await db.collection("recipes").replaceOne(
+      {
+        _id: new ObjectId(id),
+      },
+      replacementDocument,
+    );
+
+    res.json({
+      message: "Recipe replaced",
+      result: result,
+    });
+  });
+
+  app.delete("/recipes/:id", async function (req, res) {
+    const id = req.params.id;
+
+    const result = await db.collection("recipes").deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    res.json({
+      message: "Recipes deleted",
+      result: result,
     });
   });
 }
