@@ -43,6 +43,17 @@ async function main() {
 
     res.json(recipes);
   });
+
+  app.post("/recipes", async function (req, res) {
+    const recipeData = req.body;
+
+    const result = await db.collection("recipes").insertOne(recipeData);
+
+    res.json({
+      message: "New recipe created",
+      insertedId: result.insertedId,
+    });
+  });
 }
 
 main();
