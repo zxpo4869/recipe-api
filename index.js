@@ -143,6 +143,33 @@ async function main() {
 
     res.json(results);
   });
+
+  // REGISTER user
+  app.post("/users/register", async function (req, res) {
+    const userData = req.body;
+
+    // check if user is already in database by finding email
+    const existingUser = await db.collection("users").findOne({
+      email: userData.email,
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Email already used",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(userData.password, 12);
+
+    userData.password = hashedPassword;
+
+    const result = await db.collection("users").insertOne(userData);
+
+    res.json({
+      message: "User registered",
+      insertedId: result.insertedId,
+    });
+  });
 }
 
 main();
