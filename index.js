@@ -77,6 +77,7 @@ async function main() {
     });
   });
 
+  // PUT recipe
   app.put("/recipes/:id", async function (req, res) {
     const id = req.params.id;
 
@@ -95,6 +96,7 @@ async function main() {
     });
   });
 
+  // DELETE recipe
   app.delete("/recipes/:id", async function (req, res) {
     const id = req.params.id;
 
@@ -106,6 +108,40 @@ async function main() {
       message: "Recipes deleted",
       result: result,
     });
+  });
+
+  // SEARCH recipe
+  app.get("/recipes/search/filter", async function (req, res) {
+    let criteria = {};
+
+    // difficulty
+    if (req.query.difficulty) {
+      criteria.difficulty = req.query.difficulty;
+    }
+
+    // cuisine
+    if (req.query.cuisine) {
+      criteria.cuisine = req.query.cuisine;
+    }
+
+    // max cost
+    if (req.query.maxCost) {
+      criteria.estimatedCost = {
+        $lte: parseInt(req.query.maxCost),
+      };
+    }
+
+    // ingredients search
+    if (req.query.ingredient) {
+      criteria["ingredients.name"] = {
+        $regex: req.query.ingredient,
+        $options: "i",
+      };
+    }
+
+    const results = await db.collection("recipes").find(criteria).toArray();
+
+    res.json(results);
   });
 }
 
