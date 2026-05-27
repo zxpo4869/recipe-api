@@ -66,11 +66,23 @@ async function main() {
   app.get("/recipes/:id", async function (req, res) {
     const id = req.params.id;
 
-    const recipes = await db.collection("recipes").findOne({
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid recipe id",
+      });
+    }
+
+    const recipe = await db.collection("recipes").findOne({
       _id: new ObjectId(id),
     });
 
-    res.json(recipes);
+    if (!recipe) {
+      return res.status(404).json({
+        message: "Recipe not found",
+      });
+    }
+
+    res.json(recipe);
   });
 
   // CREATE recipe
@@ -79,6 +91,17 @@ async function main() {
 
     // add a created by field in mongo db
     recipeData.createdBy = req.user.user_id;
+
+    if (
+      !recipeData.title ||
+      !recipeData.description ||
+      !recipeData.difficulty ||
+      !recipeData.cuisine
+    ) {
+      return res.status(400).json({
+        message: "Missing required fields",
+      });
+    }
 
     const result = await db.collection("recipes").insertOne(recipeData);
 
@@ -94,10 +117,22 @@ async function main() {
 
     const updatedData = req.body;
 
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid recipe id",
+      });
+    }
+
     // find recipe first
     const recipe = await db.collection("recipes").findOne({
       _id: new ObjectId(id),
     });
+
+    if (!recipe) {
+      return res.status(404).json({
+        message: "Recipe not found",
+      });
+    }
 
     // ownership check
     if (recipe.createdBy != req.user.user_id) {
@@ -127,10 +162,22 @@ async function main() {
 
     const replacementDocument = req.body;
 
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid recipe id",
+      });
+    }
+
     // find recipe first
     const recipe = await db.collection("recipes").findOne({
       _id: new ObjectId(id),
     });
+
+    if (!recipe) {
+      return res.status(404).json({
+        message: "Recipe not found",
+      });
+    }
 
     // ownership check
     if (recipe.createdBy != req.user.user_id) {
@@ -158,10 +205,22 @@ async function main() {
   app.delete("/recipes/:id", verifyToken, async function (req, res) {
     const id = req.params.id;
 
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid recipe id",
+      });
+    }
+
     // find recipe first
     const recipe = await db.collection("recipes").findOne({
       _id: new ObjectId(id),
     });
+
+    if (!recipe) {
+      return res.status(404).json({
+        message: "Recipe not found",
+      });
+    }
 
     // ownership check
     if (recipe.createdBy != req.user.user_id) {
@@ -175,7 +234,7 @@ async function main() {
     });
 
     res.json({
-      message: "Recipes deleted",
+      message: "Recipe deleted",
       result: result,
     });
   });
@@ -288,9 +347,21 @@ async function main() {
 
     const reviewData = req.body;
 
+    if (reviewData.rating < 1 || reviewData.rating > 5) {
+      return res.status(400).json({
+        message: "Rating must be between 1 and 5",
+      });
+    }
+
     reviewData.review_id = new ObjectId();
 
     reviewData.user_id = req.user.user_id;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid recipe id",
+      });
+    }
 
     const result = await db.collection("recipes").updateOne(
       {
@@ -320,13 +391,31 @@ async function main() {
 
       const updatedData = req.body;
 
+      if (!ObjectId.isValid(recipeId)) {
+        return res.status(400).json({
+          message: "Invalid recipe id",
+        });
+      }
+
       const recipe = await db.collection("recipes").findOne({
         _id: new ObjectId(recipeId),
       });
 
+      if (!recipe) {
+        return res.status(404).json({
+          message: "Recipe not found",
+        });
+      }
+
       const review = recipe.reviews.find(function (r) {
         return r.review_id.toString() == reviewId;
       });
+
+      if (!review) {
+        return res.status(404).json({
+          message: "Review not found",
+        });
+      }
 
       // ownership check
       if (review.user_id != req.user.user_id) {
@@ -364,13 +453,31 @@ async function main() {
 
       const reviewId = req.params.reviewId;
 
+      if (!ObjectId.isValid(recipeId)) {
+        return res.status(400).json({
+          message: "Invalid recipe id",
+        });
+      }
+
       const recipe = await db.collection("recipes").findOne({
         _id: new ObjectId(recipeId),
       });
 
+      if (!recipe) {
+        return res.status(404).json({
+          message: "Recipe not found",
+        });
+      }
+
       const review = recipe.reviews.find(function (r) {
         return r.review_id.toString() == reviewId;
       });
+
+      if (!review) {
+        return res.status(404).json({
+          message: "Review not found",
+        });
+      }
 
       // ownership check
       if (review.user_id != req.user.user_id) {
