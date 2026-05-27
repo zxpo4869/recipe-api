@@ -281,6 +281,123 @@ async function main() {
       user: req.user,
     });
   });
+
+  // ADD review
+  app.post("/recipes/:id/reviews", verifyToken, async function (req, res) {
+    const id = req.params.id;
+
+    const reviewData = req.body;
+
+    reviewData.review_id = new ObjectId();
+
+    reviewData.user_id = req.user.user_id;
+
+    const result = await db.collection("recipes").updateOne(
+      {
+        _id: new ObjectId(id),
+      },
+      {
+        $push: {
+          reviews: reviewData,
+        },
+      },
+    );
+
+    res.json({
+      message: "Review added",
+      result: result,
+    });
+  });
+
+  // PATCH review
+  app.patch(
+    "/recipes/:recipeId/reviews/:reviewId",
+    verifyToken,
+    async function (req, res) {
+      const recipeId = req.params.recipeId;
+
+      const reviewId = req.params.reviewId;
+
+      const updatedData = req.body;
+
+      const recipe = await db.collection("recipes").findOne({
+        _id: new ObjectId(recipeId),
+      });
+
+      const review = recipe.reviews.find(function (r) {
+        return r.review_id.toString() == reviewId;
+      });
+
+      // ownership check
+      if (review.user_id != req.user.user_id) {
+        return res.status(403).json({
+          message: "You are not the owner",
+        });
+      }
+
+      const result = await db.collection("recipes").updateOne(
+        {
+          _id: new ObjectId(recipeId),
+          "reviews.review_id": review.review_id,
+        },
+        {
+          $set: {
+            "reviews.$.rating": updatedData.rating,
+            "reviews.$.comment": updatedData.comment,
+          },
+        },
+      );
+
+      res.json({
+        message: "Review updated",
+        result: result,
+      });
+    },
+  );
+
+  // DELETE review
+  app.delete(
+    "/recipes/:recipeId/reviews/:reviewId",
+    verifyToken,
+    async function (req, res) {
+      const recipeId = req.params.recipeId;
+
+      const reviewId = req.params.reviewId;
+
+      const recipe = await db.collection("recipes").findOne({
+        _id: new ObjectId(recipeId),
+      });
+
+      const review = recipe.reviews.find(function (r) {
+        return r.review_id.toString() == reviewId;
+      });
+
+      // ownership check
+      if (review.user_id != req.user.user_id) {
+        return res.status(403).json({
+          message: "You are not the owner",
+        });
+      }
+
+      const result = await db.collection("recipes").updateOne(
+        {
+          _id: new ObjectId(recipeId),
+        },
+        {
+          $pull: {
+            reviews: {
+              review_id: review.review_id,
+            },
+          },
+        },
+      );
+
+      res.json({
+        message: "Review deleted",
+        result: result,
+      });
+    },
+  );
 }
 
 main();
