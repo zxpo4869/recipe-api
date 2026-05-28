@@ -55,6 +55,25 @@ async function main() {
     });
   });
 
+  // GET recipe summaries (projection)
+  app.get("/recipes/summary", async function (req, res) {
+    const recipes = await db
+      .collection("recipes")
+      .find(
+        {},
+        {
+          projection: {
+            title: 1,
+            difficulty: 1,
+            cuisine: 1,
+          },
+        },
+      )
+      .toArray();
+
+    res.json(recipes);
+  });
+
   // GET all recipes
   app.get("/recipes", async function (req, res) {
     const recipes = await db.collection("recipes").find().toArray();
@@ -266,6 +285,38 @@ async function main() {
         $regex: req.query.ingredient,
         $options: "i",
       };
+    }
+
+    if (req.query.tags) {
+      criteria.tags = {
+        $all: req.query.tags.split(","),
+      };
+    }
+
+    if (req.query.orMode === "true") {
+      const orCriteria = [];
+
+      if (req.query.difficulty) {
+        orCriteria.push({
+          difficulty: req.query.difficulty,
+        });
+      }
+
+      if (req.query.cuisine) {
+        orCriteria.push({
+          cuisine: req.query.cuisine,
+        });
+      }
+
+      if (req.query.maxCost) {
+        orCriteria.push({
+          estimatedCost: {
+            $lte: parseInt(req.query.maxCost),
+          },
+        });
+      }
+
+      criteria.$or = orCriteria;
     }
 
     const results = await db.collection("recipes").find(criteria).toArray();
